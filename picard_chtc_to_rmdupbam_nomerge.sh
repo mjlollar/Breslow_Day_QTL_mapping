@@ -11,7 +11,7 @@
 mkdir final_bams
 mkdir dup_metrics
 
-for x in {bam_list.txt}; do
+while read x; do
 	echo $x
 
 	#Convert sam output to bam
@@ -36,4 +36,4 @@ for x in {bam_list.txt}; do
 
 	mv ${x}_dupmet.txt dup_metrics/
 	mv ${x}_rmdup.* final_bams/
-done
+done < bam_list.csv
