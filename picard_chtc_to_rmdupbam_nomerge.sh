@@ -36,3 +36,4 @@ for x in {bam_list.txt}; do
 
 	mv ${x}_dupmet.txt dup_metrics/
 	mv ${x}_rmdup.* final_bams/
+done
