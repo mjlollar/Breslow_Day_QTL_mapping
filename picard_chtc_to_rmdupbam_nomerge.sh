@@ -16,7 +16,7 @@ while read x; do
 
 	#Convert sam output to bam
 	java -jar /usr/share/picard-tools/picard.jar SortSam \
-		-I ${x}_align.sam -O ${x}_sorted.bam -SO coordinate
+		-I ${x}_align.bam -O ${x}_sorted.bam -SO coordinate
 
 	#Add read group header to bam file
 	java -jar /usr/share/picard-tools/picard.jar AddOrReplaceReadGroups \
