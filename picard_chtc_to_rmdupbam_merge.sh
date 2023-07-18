@@ -11,12 +11,12 @@
 mkdir final_bams
 mkdir dup_metrics
 
-for x in {bam_list.txt}; do
+while read x; do
 	echo $x
 
 	#Convert sam output to bam
 	java -jar /usr/share/picard-tools/picard.jar SortSam \
-		-I ${x}_align.sam -O ${x}_sorted.bam -SO coordinate
+		-I ${x}_align.bam -O ${x}_sorted.bam -SO coordinate
 
 	#Add read group header to bam file
 	java -jar /usr/share/picard-tools/picard.jar AddOrReplaceReadGroups \
@@ -36,4 +36,4 @@ for x in {bam_list.txt}; do
 
 	mv ${x}_dupmet.txt dup_metrics/
 	mv ${x}_rmdup.* final_bams/
-done
+done < merge_list.csv
