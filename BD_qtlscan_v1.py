@@ -168,15 +168,6 @@ def BD_scan(chr_1, chr_2, focal, scantype):
 							b8 += 1
 						else:
 							raise Exception("Error in calculations; Sterile/Fertile indices are incorrect")
-			print(b1)
-			print(b2)
-			print(b3)
-			print(b4)
-			print(b5)
-			print(b6)
-			print(b7)
-			print(b8)
-			print('--------')
 			if scantype == 'bi':
 				if focal == 0: #add to either forward or reverse lists
 					bd_1f.append(b1)
