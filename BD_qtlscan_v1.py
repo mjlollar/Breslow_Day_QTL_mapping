@@ -1,6 +1,6 @@
 #### Author: Matthew Lollar
 #### QTL scan framework using the Breslow-Day test statisitic
-#### Last update: Aug 1, 2023
+#### Last update: July 5th, 2023
 #### mjlollar1@gmail.com
 
 ### Required Python libraries
@@ -34,7 +34,6 @@ len_3 = list(range(Chr2_end, Chr3_end))
 ### Read in data, components are specific to current input for MJL as of 7/31/23
 df = pd.read_csv(args.i, sep='\t')
 df.drop(df.columns[[0,1,2]], axis=1, inplace=True) # not be necessary if your input contains only genotypes
-print(df)
 with open(args.s) as list_steriles:
 	sterile_ids = [line.rstrip() for line in list_steriles]
 with open(args.f) as list_fertiles:
@@ -52,7 +51,6 @@ if '' in fertile_ids:
 
 # index list for loop
 index_list = df.columns.values.tolist()
-print(index_list)
 
 ### Initialize Breslow-Day cell count lists
 ###                   W2F                      W2NF
@@ -137,8 +135,9 @@ def BD_scan(chr_1, chr_2, focal, scantype):
 			b7=0
 			b8=0
 			for index in index_list:
-				if df.at[w1, index] or df.at[w2, index] == -999:
+				if df.at[w1, index] == -999 or df.at[w2, index] == -999:
 					pass #skip comparison if no call at either window
+					print("skipping no call....")
 				elif df.at[w1, index] == focal_1: #W1F
 					if df.at[w2, index] == focal_2: #W2F
 						if index in sterile_ids:
@@ -169,6 +168,15 @@ def BD_scan(chr_1, chr_2, focal, scantype):
 							b8 += 1
 						else:
 							raise Exception("Error in calculations; Sterile/Fertile indices are incorrect")
+			print(b1)
+			print(b2)
+			print(b3)
+			print(b4)
+			print(b5)
+			print(b6)
+			print(b7)
+			print(b8)
+			print('--------')
 			if scantype == 'bi':
 				if focal == 0: #add to either forward or reverse lists
 					bd_1f.append(b1)
