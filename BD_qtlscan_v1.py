@@ -1,6 +1,6 @@
 #### Author: Matthew Lollar
 #### QTL scan framework using the Breslow-Day test statisitic
-#### Last update: July 5th, 2023
+#### Last update: Aug 1, 2023
 #### mjlollar1@gmail.com
 
 ### Required Python libraries
@@ -22,20 +22,19 @@ if args.u and (args.uset is None):
 
 ### Chromosome window boundaries (zero-indexed, unidirectional chromosomes last two windows, mito then Y)
 ## Adjust as needed, current based on Matt's 50kb window format
-#X_end = 545
-#Chr2_end = 1524
-#Chr3_end = 2579
-#testing
-X_end = 2
-Chr2_end = 6
-Chr3_end = 10
+X_end = 545
+Chr2_end = 1524
+Chr3_end = 2579
+
 #Chromosome window ranges
 len_X = list(range(0, X_end))
 len_2 = list(range(X_end, Chr2_end))
 len_3 = list(range(Chr2_end, Chr3_end))
 
-### Read in data
-df = pd.read_csv(args.i)
+### Read in data, components are specific to current input for MJL as of 7/31/23
+df = pd.read_csv(args.i, sep='\t')
+df.drop(df.columns[[0,1,2]], axis=1, inplace=True) # not be necessary if your input contains only genotypes
+print(df)
 with open(args.s) as list_steriles:
 	sterile_ids = [line.rstrip() for line in list_steriles]
 with open(args.f) as list_fertiles:
@@ -50,6 +49,10 @@ if '' in sterile_ids:
 if '' in fertile_ids:
 	while('' in fertile_ids):
 		fertile_ids.remove('')
+
+# index list for loop
+index_list = df.columns.values.tolist()
+print(index_list)
 
 ### Initialize Breslow-Day cell count lists
 ###                   W2F                      W2NF
@@ -133,8 +136,10 @@ def BD_scan(chr_1, chr_2, focal, scantype):
 			b6=0
 			b7=0
 			b8=0
-			for index in df.iloc[:,3:]:
-				if df.at[w1, index] == focal_1: #W1F
+			for index in index_list:
+				if df.at[w1, index] or df.at[w2, index] == -999:
+					pass #skip comparison if no call at either window
+				elif df.at[w1, index] == focal_1: #W1F
 					if df.at[w2, index] == focal_2: #W2F
 						if index in sterile_ids:
 							b1 += 1
@@ -156,7 +161,7 @@ def BD_scan(chr_1, chr_2, focal, scantype):
 						elif index in fertile_ids:
 							b4 += 1
 						else:
-							raise Exception("Error in calculations; Sterile/Fertile indices are incorrect")
+							raise Exception("Error in calculations; Sterile/Fertile indeces are incorrect")
 					else: #W2NF
 						if index in sterile_ids:
 							b7 += 1
