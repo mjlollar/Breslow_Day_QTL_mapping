@@ -1,78 +1,230 @@
-#!/usr/bin/env Rscript
+#### QTL scan framework using the Breslow-Day test statisitic, permutation for 95conf
+#### Last update: Aug 3rd, 2023
+#### mjlollar1@gmail.com
 
-### Author: Matt
-### mjlollar1@gmail.com
-### Last update: Aug 3rd 2023
+### Required Python libraries
+import argparse
+import numpy as np
+import pandas as pd
+import random as rd
 
-## Input file, BD cell counts file
-## one arguments required, input file)
-## e.g. $ Rscript myinput_bdgroups_perm.csv
+### Input arguments
+parser = argparse.ArgumentParser(description='Breslow-Day based QTL mapping script (get bd cell values), last update: 07/2023')
+parser.add_argument('--i', help='Input File (use full path if not in cwd)', required=True, type=str)
+parser.add_argument('--o', help='Output File Prefix', required=True, type=str)
+parser.add_argument('--s', help='Sterile list File Name (use full path if not in cwd)', type=str, required=True)
+parser.add_argument('--f', help='Sterile list File Name (use full path if not in cwd)', type=str, required=True)
 
+### Chromosome window boundaries (zero-indexed, unidirectional chromosomes last two windows, mito then Y)
+## Adjust as needed, current based on Matt's 50kb window format
+X_end = 545
+Chr2_end = 1524
+Chr3_end = 2579
 
-args <- commandArgs({trailingOnly=TRUE})
-if (length(args)==0){
-  stop("Zero arguments provided (two expected).n", call.=FALSE)
-}
+#Chromosome window ranges
+len_X = list(range(0, X_end))
+len_2 = list(range(X_end, Chr2_end))
+len_3 = list(range(Chr2_end, Chr3_end))
 
-library("DescTools") #Library containing Breslow-Day Test
+### Read in data, components are specific to current input for MJL as of 7/31/23
+df = pd.read_csv(args.i, sep=',') #MJL pipeline format input uses tab-delim
+df.drop(df.columns[[0,1,2]], axis=1, inplace=True) # not necessary if your input contains only genotypes
+with open(args.s) as list_steriles:
+	sterile_ids_tmp = [line.rstrip() for line in list_steriles]
+with open(args.f) as list_fertiles:
+	fertile_ids_tmp = [line.rstrip() for line in list_fertiles]
+list_steriles.close() #sanity
+list_fertiles.close()
 
-df <- read.csv(args[1], sep=',') #Expects comma-delim input file
-num_windows <- nrow(df)
-pvalues <- vector(mode="numeric", length=num_windows) #Initialize vector (mem saver)
+# sanity remove empty characters in sterile/fertile list (may occur if txt files end in newline)
+if '' in sterile_ids_tmp:
+	while('' in sterile_ids_tmp):
+		sterile_ids_tmp.remove('')
+if '' in fertile_ids_tmp:
+	while('' in fertile_ids_tmp):
+		fertile_ids_tmp.remove('')
 
-#### Calculate BD statistic and pvalue for each window comparison
-for (i in 1:num_windows){
-  ## Cell values with Fisher adjustment to prevent divide by zero occurrences
-  bd_1 <- df$bd1[i] + 0.5
-  bd_2 <- df$bd2[i] + 0.5
-  bd_3 <- df$bd3[i] + 0.5
-  bd_4 <- df$bd4[i] + 0.5
-  bd_5 <- df$bd5[i] + 0.5
-  bd_6 <- df$bd6[i] + 0.5
-  bd_7 <- df$bd7[i] + 0.5
-  bd_8 <- df$bd8[i] + 0.5
-  ## Calculate Odds 
-  odds_one <- ((bd_1) / (bd_1 + bd_2))
-  odds_two <- ((bd_3) / (bd_3 + bd_4))
-  odds_three <- ((bd_5) / (bd_5 + bd_6))
-  odds_four <- ((bd_7) / (bd_7 + bd_8))
-  max_odds <- max(c(odds_one, odds_two, odds_three, odds_four))
-  if (max_odds %in% c(odds_two, odds_three, odds_four) == TRUE){
-    #Skip calculation if max odds are not odds 1
-    pvalues[i] <- 999
-  } else {
-    ## Calculate Breslow Day test
-    bd_table <- xtabs(freq ~ ., cbind(expand.grid(phenotype=c("sterile", "fertile"),
-                                                  window_one=c("focal", "non-focal"),
-                                                  window_two=c("focal", "non-focal")),
-                                      freq=c(bd_1, bd_2, bd_3, bd_4, bd_5, bd_6, bd_7, bd_8)))
-    y <- BreslowDayTest(bd_table)$p.value
-    pvalues[i] <- y
-    #print(y)
-  }
-  #sanity removes
-  rm(bd_1, bd_2, bd_3, bd_4, bd_5, bd_6, bd_7, bd_8)
-  rm(odds_one, odds_two, odds_three, odds_four, max_odds, bd_table, i, y)
-}
+## Shuffle phenotype identity
+sterile_len = len(sterile_ids_tmp)
+grouped_list = sterile_ids_tmp + fertile_ids_tmp
+rd.shuffle(grouped_list)
+sterile_ids = grouped_list[0:sterile_len]
+fertile_ids = grouped_list[sterile_len:]
 
-## Sanity matching test check
-if (any(is.logical(pvalues) == TRUE)){
-  writeLines('     - Warning: The number of tests performed did not match the number of window comparisons')
-}
+# index list for loop
+index_list = df.columns.values.tolist()
 
-# Divide pvalues and get lowest X-A and A-A null pvalue
-pvalues_x <- pvalues[1:1108500] #Set of X-2 and X-3 comparisons
-pvalues_a <- pvalues[1108500:num_windows] #2-3 comparisons
-lowest_pvalue_x <- as.character(min(pvalues_x))
-lowest_pvalue_a <- as.character(min(pvalues_a))
+### Initialize Breslow-Day cell count lists
+###                   W2F                      W2NF
+###              W1F   W1NF                 W1F    W1NF
+###        S    bd1     bd3              S   bd5     bd7
+###        F    bd2     bd4              F   bd6     bd8
+#forward scans (0focal)
+bd_1f0 = []
+bd_2f0 = []
+bd_3f0 = []
+bd_4f0 = []
+bd_5f0 = []
+bd_6f0 = []
+bd_7f0 = []
+bd_8f0 = []
+#reverse scans (2focal)
+bd_1r2 = []
+bd_2r2 = []
+bd_3r2 = []
+bd_4r2 = []
+bd_5r2 = []
+bd_6r2 = []
+bd_7r2 = []
+bd_8r2 = []
+#forward scans (2focal)
+bd_1f2 = []
+bd_2f2 = []
+bd_3f2 = []
+bd_4f2 = []
+bd_5f2 = []
+bd_6f2 = []
+bd_7f2 = []
+bd_8f2 = []
+#reverse scans (0focal)
+bd_1r0 = []
+bd_2r0 = []
+bd_3r0 = []
+bd_4r0 = []
+bd_5r0 = []
+bd_6r0 = []
+bd_7r0 = []
+bd_8r0 = []
 
-# Output lowest X-A and lowest A-A pvalue as separate txts
-out_name_x <- paste(as.character(args[1]), '_x_null_pvalue.txt',sep='')
-out_file_x <- file(out_name_x)
-writeLines(lowest_pvalue, out_file_x)
-out_name_a <- paste(as.character(args[1]), '_a_null_pvalue.txt',sep='')
-out_file_a <- file(out_name_a)
-writeLines(lowest_pvalue_a, out_file_a)
+### Scan function
+def BD_scan(chr_1, chr_2, focal, scantype, direction):
+	if focal == 0:
+		focal_1 = 0
+		focal_2 = 2
+	else:
+		focal_1 = 2
+		focal_2 = 0
 
-close(out_file_x)
-close(out_file_a)
+	for w1 in chr_1:
+		for w2 in chr_2:
+			b1=0
+			b2=0
+			b3=0
+			b4=0
+			b5=0
+			b6=0
+			b7=0
+			b8=0
+			for index in index_list:
+				if df.at[w1, index] == -999 or df.at[w2, index] == -999:
+					pass #skip comparison if no call at either window
+					print("skipping no call....")
+				elif df.at[w1, index] == focal_1: #W1F
+					if df.at[w2, index] == focal_2: #W2F
+						if index in sterile_ids:
+							b1 += 1
+						elif index in fertile_ids:
+							b2 += 1
+						else:
+							raise Exception("Error in calculations; Sterile/Fertile indices are incorrect") #sanity error catching
+					else: #W2NF
+						if index in sterile_ids:
+							b5 += 1
+						elif index in fertile_ids:
+							b6 += 1
+						else:
+							raise Exception("Error in calculations; Sterile/Fertile indices are incorrect")
+				else: #W1NF
+					if df.at[w2, index] == focal_2: #W2F
+						if index in sterile_ids:
+							b3 += 1
+						elif index in fertile_ids:
+							b4 += 1
+						else:
+							raise Exception("Error in calculations; Sterile/Fertile indeces are incorrect")
+					else: #W2NF
+						if index in sterile_ids:
+							b7 += 1
+						elif index in fertile_ids:
+							b8 += 1
+						else:
+							raise Exception("Error in calculations; Sterile/Fertile indices are incorrect")
+			if scantype == 'bi':
+				if focal == 0:
+					if direction == 'forward':
+						bd_1f0.append(b1)
+						bd_2f0.append(b2)
+						bd_3f0.append(b3)
+						bd_4f0.append(b4)
+						bd_5f0.append(b5)
+						bd_6f0.append(b6)
+						bd_7f0.append(b7)
+						bd_8f0.append(b8)
+					else:
+						bd_1r0.append(b1)
+						bd_2r0.append(b2)
+						bd_3r0.append(b3)
+						bd_4r0.append(b4)
+						bd_5r0.append(b5)
+						bd_6r0.append(b6)
+						bd_7r0.append(b7)
+						bd_8r0.append(b8)
+				else:
+					if direction == 'forward':
+						bd_1f2.append(b1)
+						bd_2f2.append(b2)
+						bd_3f2.append(b3)
+						bd_4f2.append(b4)
+						bd_5f2.append(b5)
+						bd_6f2.append(b6)
+						bd_7f2.append(b7)
+					else:
+						bd_8r2.append(b8)
+						bd_1r2.append(b1)
+						bd_2r2.append(b2)
+						bd_3r2.append(b3)
+						bd_4r2.append(b4)
+						bd_5r2.append(b5)
+						bd_6r2.append(b6)
+						bd_7r2.append(b7)
+						bd_8r2.append(b8)
+			else:
+				print('sanity check, problem with "BD_scan" function parsing')
+
+### Run BD scans, forward
+BD_scan(len_X, len_2, 0, 'bi', 'forward')
+BD_scan(len_X, len_3, 0, 'bi', 'forward')
+BD_scan(len_2, len_3, 0, 'bi', 'forward')
+BD_scan(len_X, len_2, 2, 'bi', 'forward')
+BD_scan(len_X, len_3, 2, 'bi', 'forward')
+BD_scan(len_2, len_3, 2, 'bi','forward')
+
+### Run BD scans, reverse
+BD_scan(len_2, len_X, 0, 'bi', 'r')
+BD_scan(len_3, len_X, 0, 'bi', 'r')
+BD_scan(len_3, len_2, 0, 'bi', 'r')
+BD_scan(len_2, len_X, 2, 'bi', 'r')
+BD_scan(len_3, len_X, 2, 'bi', 'r')
+BD_scan(len_3, len_2, 2, 'bi', 'r')
+
+#Output
+cell_df_f0 = pd.DataFrame([bd_1f0, bd_2f0, bd_3f0, bd_4f0, bd_5f0, bd_6f0, bd_7f0, bd_8f0])
+cell_df_r0 = pd.DataFrame([bd_1r0, bd_2r0, bd_3r0, bd_4r0, bd_5r0, bd_6r0, bd_7r0, bd_8r0])
+cell_df_f2 = pd.DataFrame([bd_1f2, bd_2f2, bd_3f2, bd_4f2, bd_5f2, bd_6f2, bd_7f2, bd_8f2])
+cell_df_r2 = pd.DataFrame([bd_1r2, bd_2r2, bd_3r2, bd_4r2, bd_5r2, bd_6r2, bd_7r2, bd_8r2])
+cell_df_f0 = cell_df_f.transpose()
+cell_df_r0 = cell_df_r.transpose()
+cell_df_f2 = cell_df_f.transpose()
+cell_df_r2 = cell_df_r.transpose()
+cell_df_f0.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
+cell_df_r0.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
+cell_df_f2.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
+cell_df_r2.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
+out_name_f0 = args.o + '_perm_0focal_forward_scan_bd_cells.csv'
+out_name_r0 = args.o + '_perm_0focal_reverse_scan_bd_cells.csv'
+out_name_f2 = args.o + '_perm_2focal_forward_scan_bd_cells.csv'
+out_name_r2 = args.o + '_perm_2focal_reverse_scan_bd_cells.csv'
+cell_df_f0.to_csv(out_name_f0, header=True, index=False)
+cell_df_r0.to_csv(out_name_r0, header=True, index=False)
+cell_df_f2.to_csv(out_name_f2, header=True, index=False)
+cell_df_r2.to_csv(out_name_r2, header=True, index=False)
