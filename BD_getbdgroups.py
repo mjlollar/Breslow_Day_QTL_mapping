@@ -216,8 +216,8 @@ def BD_scan(chr_1, chr_2, focal, scantype, direction):
 						bd_5f2.append(b5)
 						bd_6f2.append(b6)
 						bd_7f2.append(b7)
+						bd_8f2.append(b8)
 					else:
-						bd_8r2.append(b8)
 						bd_1r2.append(b1)
 						bd_2r2.append(b2)
 						bd_3r2.append(b3)
