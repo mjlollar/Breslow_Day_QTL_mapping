@@ -32,8 +32,8 @@ len_2 = list(range(X_end, Chr2_end))
 len_3 = list(range(Chr2_end, Chr3_end))
 
 ### Read in data, components are specific to current input for MJL as of 7/31/23
-df = pd.read_csv(args.i, sep='\t')
-df.drop(df.columns[[0,1,2]], axis=1, inplace=True) # not be necessary if your input contains only genotypes
+df = pd.read_csv(args.i, sep=',') #MJL pipeline format input uses tab-delim
+df.drop(df.columns[[0,1,2]], axis=1, inplace=True) # not necessary if your input contains only genotypes
 with open(args.s) as list_steriles:
 	sterile_ids = [line.rstrip() for line in list_steriles]
 with open(args.f) as list_fertiles:
@@ -58,28 +58,46 @@ index_list = df.columns.values.tolist()
 ###        S    bd1     bd3              S   bd5     bd7
 ###        F    bd2     bd4              F   bd6     bd8
 #forward scans (0focal)
-bd_1f = []
-bd_2f = []
-bd_3f = []
-bd_4f = []
-bd_5f = []
-bd_6f = []
-bd_7f = []
-bd_8f = []
+bd_1f0 = []
+bd_2f0 = []
+bd_3f0 = []
+bd_4f0 = []
+bd_5f0 = []
+bd_6f0 = []
+bd_7f0 = []
+bd_8f0 = []
 #reverse scans (2focal)
-bd_1r = []
-bd_2r = []
-bd_3r = []
-bd_4r = []
-bd_5r = []
-bd_6r = []
-bd_7r = []
-bd_8r = []
+bd_1r2 = []
+bd_2r2 = []
+bd_3r2 = []
+bd_4r2 = []
+bd_5r2 = []
+bd_6r2 = []
+bd_7r2 = []
+bd_8r2 = []
+#forward scans (2focal)
+bd_1f2 = []
+bd_2f2 = []
+bd_3f2 = []
+bd_4f2 = []
+bd_5f2 = []
+bd_6f2 = []
+bd_7f2 = []
+bd_8f2 = []
+#reverse scans (0focal)
+bd_1r0 = []
+bd_2r0 = []
+bd_3r0 = []
+bd_4r0 = []
+bd_5r0 = []
+bd_6r0 = []
+bd_7r0 = []
+bd_8r0 = []
 
 ### Unidirectional scan
 if args.u == True:
 	mito_win = [2579] #Adjust as needed
-	Y_win = [2580] #Adjust as needed
+	y_win = [2580] #Adjust as needed
 	### Initialize Breslow-Day cell count lists
 	#forward scans
 	bd_1f_m = []
@@ -117,13 +135,14 @@ if args.u == True:
 	bd_8r_y = []
 
 ### Scan function
-def BD_scan(chr_1, chr_2, focal, scantype):
+def BD_scan(chr_1, chr_2, focal, scantype, direction):
 	if focal == 0:
 		focal_1 = 0
 		focal_2 = 2
 	else:
 		focal_1 = 2
 		focal_2 = 0
+
 	for w1 in chr_1:
 		for w2 in chr_2:
 			b1=0
@@ -169,24 +188,44 @@ def BD_scan(chr_1, chr_2, focal, scantype):
 						else:
 							raise Exception("Error in calculations; Sterile/Fertile indices are incorrect")
 			if scantype == 'bi':
-				if focal == 0: #add to either forward or reverse lists
-					bd_1f.append(b1)
-					bd_2f.append(b2)
-					bd_3f.append(b3)
-					bd_4f.append(b4)
-					bd_5f.append(b5)
-					bd_6f.append(b6)
-					bd_7f.append(b7)
-					bd_8f.append(b8)
+				if focal == 0:
+					if direction == 'forward':
+						bd_1f0.append(b1)
+						bd_2f0.append(b2)
+						bd_3f0.append(b3)
+						bd_4f0.append(b4)
+						bd_5f0.append(b5)
+						bd_6f0.append(b6)
+						bd_7f0.append(b7)
+						bd_8f0.append(b8)
+					else:
+						bd_1r0.append(b1)
+						bd_2r0.append(b2)
+						bd_3r0.append(b3)
+						bd_4r0.append(b4)
+						bd_5r0.append(b5)
+						bd_6r0.append(b6)
+						bd_7r0.append(b7)
+						bd_8r0.append(b8)
 				else:
-					bd_1r.append(b1)
-					bd_2r.append(b2)
-					bd_3r.append(b3)
-					bd_4r.append(b4)
-					bd_5r.append(b5)
-					bd_6r.append(b6)
-					bd_7r.append(b7)
-					bd_8r.append(b8)
+					if direction == 'forward':
+						bd_1f2.append(b1)
+						bd_2f2.append(b2)
+						bd_3f2.append(b3)
+						bd_4f2.append(b4)
+						bd_5f2.append(b5)
+						bd_6f2.append(b6)
+						bd_7f2.append(b7)
+					else:
+						bd_8r2.append(b8)
+						bd_1r2.append(b1)
+						bd_2r2.append(b2)
+						bd_3r2.append(b3)
+						bd_4r2.append(b4)
+						bd_5r2.append(b5)
+						bd_6r2.append(b6)
+						bd_7r2.append(b7)
+						bd_8r2.append(b8)
 			elif scantype == 'mito':
 				if focal == 0: #add to either forward or reverse lists
 					bd_1f_m.append(b1)
@@ -229,48 +268,89 @@ def BD_scan(chr_1, chr_2, focal, scantype):
 				print('sanity check, problem with "BD_scan" function parsing')
 
 ### Run BD scans, forward
-BD_scan(len_X, len_2, 0, 'bi')
-BD_scan(len_X, len_3, 0, 'bi')
-BD_scan(len_2, len_3, 0, 'bi')
-### Run BD scans, reverse
-BD_scan(len_X, len_2, 2, 'bi')
-BD_scan(len_X, len_3, 2, 'bi')
-BD_scan(len_2, len_3, 2, 'bi')
+print("getting X by 2, 0 focal")
+BD_scan(len_X, len_2, 0, 'bi', 'forward')
+print("getting X by 3, 0 focal")
+BD_scan(len_X, len_3, 0, 'bi', 'forward')
+print("getting 2 by 3, 0 focal")
+BD_scan(len_2, len_3, 0, 'bi', 'forward')
+print("getting X by 2, 2 focal")
+BD_scan(len_X, len_2, 2, 'bi', 'forward')
+print("getting X by 3, 2 focal")
+BD_scan(len_X, len_3, 2, 'bi', 'forward')
+print("getting 2 by 3, 2 focal")
+BD_scan(len_2, len_3, 2, 'bi','forward')
 
-assert len(bd_1f) == len(bd_2f) == len(bd_3f) == len(bd_4f) == len(bd_5f) == len(bd_6f) == len(bd_7f) == len(bd_8f) # Sanity
-assert len(bd_1r) == len(bd_2r) == len(bd_3r) == len(bd_4r) == len(bd_5r) == len(bd_6r) == len(bd_7r) == len(bd_8r) # Sanity
+### Run BD scans, reverse
+print("getting 2 by X, 0 focal")
+BD_scan(len_2, len_X, 0, 'bi', 'r')
+print("getting X by 3, 0 focal")
+BD_scan(len_3, len_X, 0, 'bi', 'r')
+print("getting 3 by 2, 0 focal")
+BD_scan(len_3, len_2, 0, 'bi', 'r')
+print("getting 2 by X, 2 focal")
+BD_scan(len_2, len_X, 2, 'bi', 'r')
+print("getting 3 by X, 2 focal")
+BD_scan(len_3, len_X, 2, 'bi', 'r')
+print("getting 3 by 2, 2 focal")
+BD_scan(len_3, len_2, 2, 'bi', 'r')
+
+
+assert len(bd_1f0) == len(bd_2f0) == len(bd_3f0) == len(bd_4f0) == len(bd_5f0) == len(bd_6f0) == len(bd_7f0) == len(bd_8f0) # Sanity
+assert len(bd_1r0) == len(bd_2r0) == len(bd_3r0) == len(bd_4r0) == len(bd_5r0) == len(bd_6r0) == len(bd_7r0) == len(bd_8r0) # Sanity
+assert len(bd_1f2) == len(bd_2f2) == len(bd_3f2) == len(bd_4f2) == len(bd_5f2) == len(bd_6f2) == len(bd_7f2) == len(bd_8f2) # Sanity
+assert len(bd_1r2) == len(bd_2r2) == len(bd_3r2) == len(bd_4r2) == len(bd_5r2) == len(bd_6r2) == len(bd_7r2) == len(bd_8r2) # Sanity
 
 #Output
-cell_df_f = pd.DataFrame([bd_1f, bd_2f, bd_3f, bd_4f, bd_5f, bd_6f, bd_7f, bd_8f])
-cell_df_r = pd.DataFrame([bd_1r, bd_2r, bd_3r, bd_4r, bd_5r, bd_6r, bd_7r, bd_8r])
-cell_df_f = cell_df_f.transpose()
-cell_df_r = cell_df_r.transpose()
-cell_df_f.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
-cell_df_r.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
-out_name_f = args.o + '_forward_scan_bd_cells.csv'
-out_name_r = args.o + '_reverse_scan_bd_cells.csv'
-cell_df_f.to_csv(out_name_f, header=True, index=False)
-cell_df_r.to_csv(out_name_r, header=True, index=False)
+cell_df_f0 = pd.DataFrame([bd_1f0, bd_2f0, bd_3f0, bd_4f0, bd_5f0, bd_6f0, bd_7f0, bd_8f0])
+cell_df_r0 = pd.DataFrame([bd_1r0, bd_2r0, bd_3r0, bd_4r0, bd_5r0, bd_6r0, bd_7r0, bd_8r0])
+cell_df_f2 = pd.DataFrame([bd_1f2, bd_2f2, bd_3f2, bd_4f2, bd_5f2, bd_6f2, bd_7f2, bd_8f2])
+cell_df_r2 = pd.DataFrame([bd_1r2, bd_2r2, bd_3r2, bd_4r2, bd_5r2, bd_6r2, bd_7r2, bd_8r2])
+cell_df_f0 = cell_df_f.transpose()
+cell_df_r0 = cell_df_r.transpose()
+cell_df_f2 = cell_df_f.transpose()
+cell_df_r2 = cell_df_r.transpose()
+cell_df_f0.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
+cell_df_r0.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
+cell_df_f2.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
+cell_df_r2.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
+out_name_f0 = args.o + '_0focal_forward_scan_bd_cells.csv'
+out_name_r0 = args.o + '_0focal_reverse_scan_bd_cells.csv'
+out_name_f2 = args.o + '_2focal_forward_scan_bd_cells.csv'
+out_name_r2 = args.o + '_2_focal_reverse_scan_bd_cells.csv'
+cell_df_f0.to_csv(out_name_f0, header=True, index=False)
+cell_df_r0.to_csv(out_name_r0, header=True, index=False)
+cell_df_f2.to_csv(out_name_f2, header=True, index=False)
+cell_df_r2.to_csv(out_name_r2, header=True, index=False)
 
 ### Run BD scans
+### Warning: No sanity check for equal bd groups in uni subset
 if args.u == True:
 	if args.uset == 1:
 		#forward mito
+		print("getting focal 0 mito")
 		BD_scan(mito_win, len_X, 0, 'mito')
 		BD_scan(mito_win, len_2, 0, 'mito')
 		BD_scan(mito_win, len_3, 0, 'mito')
+
 		#reverse mito
+		print("getting focal 2 mito")
 		BD_scan(mito_win, len_X, 2, 'mito')
 		BD_scan(mito_win, len_2, 2, 'mito')
 		BD_scan(mito_win, len_3, 2, 'mito')
+
 		#forward y
+		print("getting focal 0 Y")
 		BD_scan(y_win, len_X, 0, 'y')
 		BD_scan(y_win, len_2, 0, 'y')
 		BD_scan(y_win, len_3, 0, 'y')
+
 		#reverse y
+		print("getting focal 2 Y")
 		BD_scan(y_win, len_X, 2, 'y')
 		BD_scan(y_win, len_2, 2, 'y')
 		BD_scan(y_win, len_3, 2, 'y')
+
 		##output
 		cell_df_mito_f = pd.DataFrame([bd_1f_m, bd_2f_m, bd_3f_m, bd_4f_m, bd_5f_m, bd_6f_m, bd_7f_m, bd_8f_m])
 		cell_df_mito_r = pd.DataFrame([bd_1r_m, bd_2r_m, bd_3r_m, bd_4r_m, bd_5r_m, bd_6r_m, bd_7r_m, bd_8r_m])
@@ -292,15 +372,19 @@ if args.u == True:
 		cell_df_mito_r.to_csv(out_name_mito_r, header=True, index=False)
 		cell_df_y_f.to_csv(out_name_y_f, header=True, index=False)
 		cell_df_y_r.to_csv(out_name_y_r, header=True, index=False)
+
 	if args.uset == 0: #FRmito, ZIy
 		#forward mito
+		print("getting 0 mito, 2 Y scans")
 		BD_scan(mito_win, len_X, 0, 'mito')
 		BD_scan(mito_win, len_2, 0, 'mito')
 		BD_scan(mito_win, len_3, 0, 'mito')
+
 		#reverse y
 		BD_scan(y_win, len_X, 2, 'y')
 		BD_scan(y_win, len_2, 2, 'y')
 		BD_scan(y_win, len_3, 2, 'y')
+
 		cell_df_mito_f = pd.DataFrame([bd_1f_m, bd_2f_m, bd_3f_m, bd_4f_m, bd_5f_m, bd_6f_m, bd_7f_m, bd_8f_m])
 		cell_df_y_r = pd.DataFrame([bd_1r_y, bd_2r_y, bd_3r_y, bd_4r_y, bd_5r_y, bd_6r_y, bd_7r_y, bd_8r_y])
 		cell_df_mito_f = cell_df_mito_f.transpose()
@@ -311,15 +395,19 @@ if args.u == True:
 		out_name_y_r = args.o + '_y_uni_ZI_scan_bd_cells.csv'
 		cell_df_mito_f.to_csv(out_name_mito_f, header=True, index=False)
 		cell_df_y_r.to_csv(out_name_y_r, header=True, index=False)
+
 	if args.uset == 2: #ZImito, FRy
 		#reverse mito
+		print("getting 2 mito, 0 y scans")
 		BD_scan(mito_win, len_X, 2, 'mito')
 		BD_scan(mito_win, len_2, 2, 'mito')
 		BD_scan(mito_win, len_3, 2, 'mito')
+
 		#forward y
 		BD_scan(y_win, len_X, 0, 'y')
 		BD_scan(y_win, len_2, 0, 'y')
 		BD_scan(y_win, len_3, 0, 'y')
+
 		cell_df_mito_r = pd.DataFrame([bd_1r_m, bd_2r_m, bd_3r_m, bd_4r_m, bd_5r_m, bd_6r_m, bd_7r_m, bd_8r_m])
 		cell_df_y_f = pd.DataFrame([bd_1f_y, bd_2f_y, bd_3f_y, bd_4f_y, bd_5f_y, bd_6f_y, bd_7f_y, bd_8f_y])
 		cell_df_mito_r = cell_df_mito_r.transpose()
