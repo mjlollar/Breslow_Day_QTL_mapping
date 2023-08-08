@@ -1,6 +1,6 @@
 #### Author: Matthew Lollar
 #### QTL scan framework using the Breslow-Day test statisitic
-#### Last update: July 5th, 2023
+#### Last update: Aug 8th, 2023
 #### mjlollar1@gmail.com
 
 ### Required Python libraries
@@ -14,11 +14,7 @@ parser.add_argument('--i', help='Input File (use full path if not in cwd)', requ
 parser.add_argument('--o', help='Output File Prefix', required=True, type=str)
 parser.add_argument('--s', help='Sterile list File Name (use full path if not in cwd)', type=str, required=True)
 parser.add_argument('--f', help='Sterile list File Name (use full path if not in cwd)', type=str, required=True)
-parser.add_argument('--u', help='Run unidirectional scans (optional)', action='store_true', required=False)
-parser.add_argument('--uset', help='Run a subset of unidirectional scans (0=FRmito/ZIy, 1=both, 2=ZImito/FRy)', type=int, choices=range(0, 3), required=False)
 args = parser.parse_args()
-if args.u and (args.uset is None):
-	parser.error("Flag '--u' requires additional flag '--uset.'")
 
 ### Chromosome window boundaries (zero-indexed, unidirectional chromosomes last two windows, mito then Y)
 ## Adjust as needed, current based on Matt's 50kb window format
@@ -93,46 +89,6 @@ bd_5r0 = []
 bd_6r0 = []
 bd_7r0 = []
 bd_8r0 = []
-
-### Unidirectional scan
-if args.u == True:
-	mito_win = [2579] #Adjust as needed
-	y_win = [2580] #Adjust as needed
-	### Initialize Breslow-Day cell count lists
-	#forward scans
-	bd_1f_m = []
-	bd_2f_m = []
-	bd_3f_m = []
-	bd_4f_m = []
-	bd_5f_m = []
-	bd_6f_m = []
-	bd_7f_m = []
-	bd_8f_m = []
-	bd_1f_y = []
-	bd_2f_y = []
-	bd_3f_y = []
-	bd_4f_y = []
-	bd_5f_y = []
-	bd_6f_y = []
-	bd_7f_y = []
-	bd_8f_y = []
-	#reverse scans
-	bd_1r_m = []
-	bd_2r_m = []
-	bd_3r_m = []
-	bd_4r_m = []
-	bd_5r_m = []
-	bd_6r_m = []
-	bd_7r_m = []
-	bd_8r_m = []
-	bd_1r_y = []
-	bd_2r_y = []
-	bd_3r_y = []
-	bd_4r_y = []
-	bd_5r_y = []
-	bd_6r_y = []
-	bd_7r_y = []
-	bd_8r_y = []
 
 ### Scan function
 def BD_scan(chr_1, chr_2, focal, scantype, direction):
@@ -226,44 +182,6 @@ def BD_scan(chr_1, chr_2, focal, scantype, direction):
 						bd_6r2.append(b6)
 						bd_7r2.append(b7)
 						bd_8r2.append(b8)
-			elif scantype == 'mito':
-				if focal == 0: #add to either forward or reverse lists
-					bd_1f_m.append(b1)
-					bd_2f_m.append(b2)
-					bd_3f_m.append(b3)
-					bd_4f_m.append(b4)
-					bd_5f_m.append(b5)
-					bd_6f_m.append(b6)
-					bd_7f_m.append(b7)
-					bd_8f_m.append(b8)
-				else:
-					bd_1r_m.append(b1)
-					bd_2r_m.append(b2)
-					bd_3r_m.append(b3)
-					bd_4r_m.append(b4)
-					bd_5r_m.append(b5)
-					bd_6r_m.append(b6)
-					bd_7r_m.append(b7)
-					bd_8r_m.append(b8)
-			elif scantype == 'y':
-				if focal == 0: #add to either forward or reverse lists
-					bd_1f_y.append(b1)
-					bd_2f_y.append(b2)
-					bd_3f_y.append(b3)
-					bd_4f_y.append(b4)
-					bd_5f_y.append(b5)
-					bd_6f_y.append(b6)
-					bd_7f_y.append(b7)
-					bd_8f_y.append(b8)
-				else:
-					bd_1r_y.append(b1)
-					bd_2r_y.append(b2)
-					bd_3r_y.append(b3)
-					bd_4r_y.append(b4)
-					bd_5r_y.append(b5)
-					bd_6r_y.append(b6)
-					bd_7r_y.append(b7)
-					bd_8r_y.append(b8)
 			else:
 				print('sanity check, problem with "BD_scan" function parsing')
 
@@ -322,99 +240,3 @@ cell_df_f0.to_csv(out_name_f0, header=True, index=False)
 cell_df_r0.to_csv(out_name_r0, header=True, index=False)
 cell_df_f2.to_csv(out_name_f2, header=True, index=False)
 cell_df_r2.to_csv(out_name_r2, header=True, index=False)
-
-### Run BD scans
-### Warning: No sanity check for equal bd groups in uni subset
-if args.u == True:
-	if args.uset == 1:
-		#forward mito
-		print("getting focal 0 mito")
-		BD_scan(mito_win, len_X, 0, 'mito')
-		BD_scan(mito_win, len_2, 0, 'mito')
-		BD_scan(mito_win, len_3, 0, 'mito')
-
-		#reverse mito
-		print("getting focal 2 mito")
-		BD_scan(mito_win, len_X, 2, 'mito')
-		BD_scan(mito_win, len_2, 2, 'mito')
-		BD_scan(mito_win, len_3, 2, 'mito')
-
-		#forward y
-		print("getting focal 0 Y")
-		BD_scan(y_win, len_X, 0, 'y')
-		BD_scan(y_win, len_2, 0, 'y')
-		BD_scan(y_win, len_3, 0, 'y')
-
-		#reverse y
-		print("getting focal 2 Y")
-		BD_scan(y_win, len_X, 2, 'y')
-		BD_scan(y_win, len_2, 2, 'y')
-		BD_scan(y_win, len_3, 2, 'y')
-
-		##output
-		cell_df_mito_f = pd.DataFrame([bd_1f_m, bd_2f_m, bd_3f_m, bd_4f_m, bd_5f_m, bd_6f_m, bd_7f_m, bd_8f_m])
-		cell_df_mito_r = pd.DataFrame([bd_1r_m, bd_2r_m, bd_3r_m, bd_4r_m, bd_5r_m, bd_6r_m, bd_7r_m, bd_8r_m])
-		cell_df_y_f = pd.DataFrame([bd_1f_y, bd_2f_y, bd_3f_y, bd_4f_y, bd_5f_y, bd_6f_y, bd_7f_y, bd_8f_y])
-		cell_df_y_r = pd.DataFrame([bd_1r_y, bd_2r_y, bd_3r_y, bd_4r_y, bd_5r_y, bd_6r_y, bd_7r_y, bd_8r_y])
-		cell_df_mito_f = cell_df_mito_f.transpose()
-		cell_df_mito_r = cell_df_mito_r.transpose()
-		cell_df_y_f = cell_df_y_f.transpose()
-		cell_df_y_r = cell_df_y_r.transpose()
-		cell_df_mito_f.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
-		cell_df_mito_r.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
-		cell_df_y_f.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
-		cell_df_y_r.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
-		out_name_mito_f = args.o + '_mito_uni_FR_scan_bd_cells.csv'
-		out_name_mito_r = args.o + '_mito_uni_ZI_scan_bd_cells.csv'
-		out_name_y_f = args.o + '_y_uni_FR_scan_bd_cells.csv'
-		out_name_y_r = args.o + '_y_uni_ZI_scan_bd_cells.csv'
-		cell_df_mito_f.to_csv(out_name_mito_f, header=True, index=False)
-		cell_df_mito_r.to_csv(out_name_mito_r, header=True, index=False)
-		cell_df_y_f.to_csv(out_name_y_f, header=True, index=False)
-		cell_df_y_r.to_csv(out_name_y_r, header=True, index=False)
-
-	if args.uset == 0: #FRmito, ZIy
-		#forward mito
-		print("getting 0 mito, 2 Y scans")
-		BD_scan(mito_win, len_X, 0, 'mito')
-		BD_scan(mito_win, len_2, 0, 'mito')
-		BD_scan(mito_win, len_3, 0, 'mito')
-
-		#reverse y
-		BD_scan(y_win, len_X, 2, 'y')
-		BD_scan(y_win, len_2, 2, 'y')
-		BD_scan(y_win, len_3, 2, 'y')
-
-		cell_df_mito_f = pd.DataFrame([bd_1f_m, bd_2f_m, bd_3f_m, bd_4f_m, bd_5f_m, bd_6f_m, bd_7f_m, bd_8f_m])
-		cell_df_y_r = pd.DataFrame([bd_1r_y, bd_2r_y, bd_3r_y, bd_4r_y, bd_5r_y, bd_6r_y, bd_7r_y, bd_8r_y])
-		cell_df_mito_f = cell_df_mito_f.transpose()
-		cell_df_y_r = cell_df_y_r.transpose()
-		cell_df_mito_f.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
-		cell_df_y_r.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
-		out_name_mito_f = args.o + '_mito_uni_FR_scan_bd_cells.csv'
-		out_name_y_r = args.o + '_y_uni_ZI_scan_bd_cells.csv'
-		cell_df_mito_f.to_csv(out_name_mito_f, header=True, index=False)
-		cell_df_y_r.to_csv(out_name_y_r, header=True, index=False)
-
-	if args.uset == 2: #ZImito, FRy
-		#reverse mito
-		print("getting 2 mito, 0 y scans")
-		BD_scan(mito_win, len_X, 2, 'mito')
-		BD_scan(mito_win, len_2, 2, 'mito')
-		BD_scan(mito_win, len_3, 2, 'mito')
-
-		#forward y
-		BD_scan(y_win, len_X, 0, 'y')
-		BD_scan(y_win, len_2, 0, 'y')
-		BD_scan(y_win, len_3, 0, 'y')
-
-		cell_df_mito_r = pd.DataFrame([bd_1r_m, bd_2r_m, bd_3r_m, bd_4r_m, bd_5r_m, bd_6r_m, bd_7r_m, bd_8r_m])
-		cell_df_y_f = pd.DataFrame([bd_1f_y, bd_2f_y, bd_3f_y, bd_4f_y, bd_5f_y, bd_6f_y, bd_7f_y, bd_8f_y])
-		cell_df_mito_r = cell_df_mito_r.transpose()
-		cell_df_y_f = cell_df_y_f.transpose()
-		cell_df_mito_r.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
-		cell_df_y_f.columns = ['bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8']
-		out_name_mito_r = args.o + '_mito_uni_ZI_scan_bd_cells.csv'
-		out_name_y_f = args.o + '_y_uni_FR_scan_bd_cells.csv'
-		cell_df_mito_r.to_csv(out_name_mito_r, header=True, index=False)
-		cell_df_y_f.to_csv(out_name_y_f, header=True, index=False)
