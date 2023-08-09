@@ -14,8 +14,7 @@ parser = argparse.ArgumentParser(description='Breslow-Day based QTL mapping scri
 parser.add_argument('--i', help='Input File (use full path if not in cwd)', required=True, type=str)
 parser.add_argument('--o', help='Output File Prefix', required=True, type=str)
 parser.add_argument('--s', help='Sterile list File Name (use full path if not in cwd)', type=str, required=True)
-parser.add_argument('--f', help='Sterile list File Name (use full path if not in cwd)', type=str, required=True)
-parser.add_argument('-ff', help
+parser.add_argument('--f', help='Fertile non-focal list File Name (use full path if not in cwd)', type=str, required=True)
 parser.add_argument('--uset', help='Specify Y or Mito scan (options: "M" or "Y")', type=str, required=True, choices=('M', 'Y'))
 parser.add_argument('--focal', help='Run a subset of unidirectional scans (options: 0 (Fr) or 2 (Zi))', type=int, choices=(0,2), required=True)
 args = parser.parse_args()
@@ -39,15 +38,16 @@ df = pd.read_csv(args.i, sep=',') #MJL pipeline format input uses tab-delim
 df.drop(df.columns[[0,1,2]], axis=1, inplace=True) # not necessary if your input contains only genotypes
 with open(args.s) as list_steriles:
 	sterile_ids = [line.rstrip() for line in list_steriles]
-with open(args.f) as list_fertiles:
+with open(args.ff) as list_fertiles:
 	fertile_ids = [line.rstrip() for line in list_fertiles]
 list_steriles.close() #sanity
-list_fertiles.close()
+list_fertiles.close() #sanity
+
 
 # sanity remove empty characters in sterile/fertile list (may occur if txt files end in newline)
 if '' in sterile_ids:
 	while('' in sterile_ids):
-		sterile_ids.remove('')
+		sterile_ids_tmp.remove('')
 if '' in fertile_ids:
 	while('' in fertile_ids):
 		fertile_ids.remove('')
