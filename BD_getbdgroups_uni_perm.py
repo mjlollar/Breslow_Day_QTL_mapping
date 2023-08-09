@@ -68,7 +68,7 @@ fertile_ids_group_tmp = grouped_list[sterile_len:]
 fertile_ids = fertile_ids_group_tmp + fertile_nonfocal_ids_tmp
 
 # index list for loop
-index_list = df.columns.values.tolist()
+index_list = sterile_ids + fertile_ids
 
 ### Initialize Breslow-Day cell count lists
 ###                   W2F                      W2NF
