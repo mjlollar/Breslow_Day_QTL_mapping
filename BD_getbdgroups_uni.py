@@ -15,6 +15,7 @@ parser.add_argument('--i', help='Input File (use full path if not in cwd)', requ
 parser.add_argument('--o', help='Output File Prefix', required=True, type=str)
 parser.add_argument('--s', help='Sterile list File Name (use full path if not in cwd)', type=str, required=True)
 parser.add_argument('--f', help='Sterile list File Name (use full path if not in cwd)', type=str, required=True)
+parser.add_argument('-ff', help
 parser.add_argument('--uset', help='Specify Y or Mito scan (options: "M" or "Y")', type=str, required=True, choices=('M', 'Y'))
 parser.add_argument('--focal', help='Run a subset of unidirectional scans (options: 0 (Fr) or 2 (Zi))', type=int, choices=(0,2), required=True)
 args = parser.parse_args()
