@@ -53,7 +53,7 @@ if '' in fertile_ids:
 		fertile_ids.remove('')
 
 # index list for loop
-index_list = df.columns.values.tolist()
+index_list = sterile_ids + fertile_ids
 
 ### Initialize Breslow-Day cell count lists
 ###                   W2F                      W2NF
